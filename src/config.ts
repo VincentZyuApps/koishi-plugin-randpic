@@ -1,0 +1,235 @@
+import { Schema } from 'koishi'
+
+/** 图片库配置项 */
+export interface ImageLibrary {
+  command: string
+  imageDir: string
+  enabled: boolean
+}
+
+export interface Config {
+  // 图片库列表
+  imageLibraries: ImageLibrary[]
+  searchSubfolders: boolean
+
+  // Qdrant 配置
+  enableQdrant: boolean
+  qdrantHost: string
+  qdrantPort: number
+  collectionName: string
+
+  // Embedding 配置
+  enableLocalEmbedding: boolean
+  embeddingModel: string
+  topK: number
+  similarityThreshold: number
+
+  // 代理配置
+  enableProxy: boolean
+  proxyProtocol: 'http' | 'https' | 'socks4' | 'socks5' | 'socks5h'
+  proxyHost: string
+  proxyPort: number
+
+  // 图片发送配置
+  toBase64: boolean
+  outputFormat: string
+
+  // 调试
+  debug: boolean
+}
+
+/** 默认图片库配置 */
+const defaultImageLibraries: ImageLibrary[] = [
+  {
+    command: 'randpic',
+    imageDir: '~/Images',
+    enabled: true,
+  },
+]
+
+export const Config: Schema<Config> = Schema.intersect([
+  // ============ 图片库配置 ============
+  Schema.object({
+    imageLibraries: Schema.array(Schema.object({
+      command: Schema.string().description('⌨️ 指令名称'),
+      imageDir: Schema.string().description('📁 图片文件夹路径'),
+      enabled: Schema.boolean().default(true).description('✅ 是否启用'),
+    })).role('table').default(defaultImageLibraries)
+      .description('🎨 图片库列表<br>▶ 每行配置一个指令，可以为不同文件夹注册不同的指令<br>▶ 路径支持 `~` 表示用户目录'),
+
+    searchSubfolders: Schema.boolean()
+      .default(true)
+      .description('📂 是否递归搜索子文件夹'),
+  }).description('📦 图片库配置'),
+
+  // ============ Qdrant 向量数据库配置 ============
+  Schema.object({
+    enableQdrant: Schema.boolean()
+      .default(false)
+      .description('🔌 启用 Qdrant 向量搜索（子串匹配失败时的 fallback）'),
+
+    qdrantHost: Schema.string()
+      .default('127.0.0.1')
+      .description('🌐 Qdrant 服务器地址'),
+
+    qdrantPort: Schema.number()
+      .default(6333)
+      .min(1).max(65535)
+      .description('🔢 Qdrant 服务器端口'),
+
+    collectionName: Schema.string()
+      .default('randpic_images')
+      .description('🗄️ Qdrant 集合名称'),
+  }).description('🐳 Qdrant 向量数据库配置'),
+
+  // ============ 本地 Embedding 配置 ============
+  Schema.object({
+    enableLocalEmbedding: Schema.boolean()
+      .default(false)
+      .description('🧠 启用本地 Embedding（Transformers.js，首次加载模型较慢）'),
+
+    embeddingModel: Schema.union([
+      Schema.const('Xenova/paraphrase-multilingual-MiniLM-L12-v2').description('🌍 多语言 MiniLM (推荐，384维)'),
+      Schema.const('Xenova/multilingual-e5-small').description('🌏 多语言 E5-small (效果更好，384维)'),
+      Schema.const('Xenova/bge-small-zh-v1.5').description('🇨🇳 中文 BGE-small (中文专用，512维)'),
+    ])
+      .default('Xenova/paraphrase-multilingual-MiniLM-L12-v2')
+      .description('🤖 Embedding 模型选择'),
+
+    topK: Schema.number()
+      .default(5)
+      .min(1).max(50)
+      .description('🔝 向量搜索返回的候选数量'),
+
+    similarityThreshold: Schema.number()
+      .default(0.3)
+      .min(0).max(1).step(0.05)
+      .description('📊 相似度阈值 (0-1)，低于此值不返回'),
+  }).description('🧪 本地 Embedding 配置 (Transformers.js)'),
+
+  // ============ 代理配置 ============
+  Schema.object({
+    enableProxy: Schema.boolean()
+      .default(false)
+      .description('🌐 启用代理（用于下载 Hugging Face 模型）'),
+
+    proxyProtocol: Schema.union([
+      Schema.const('http').description('HTTP 代理'),
+      Schema.const('https').description('HTTPS 代理'),
+      Schema.const('socks4').description('SOCKS4 代理'),
+      Schema.const('socks5').description('SOCKS5 代理'),
+      Schema.const('socks5h').description('SOCKS5h 代理 (远程 DNS)'),
+    ])
+      .default('socks5h')
+      .description('🔒 代理协议'),
+
+    proxyHost: Schema.string()
+      .default('127.0.0.1')
+      .description('📍 代理地址'),
+
+    proxyPort: Schema.number()
+      .default(7890)
+      .min(1).max(65535)
+      .description('🔢 代理端口'),
+  }).description('🌐 网络代理配置（下载模型用）'),
+
+  // ============ 图片发送配置 ============
+  Schema.object({
+    toBase64: Schema.boolean()
+      .default(true)
+      .description('🔄 转换为 Base64 发送（兼容性更好）'),
+
+    outputFormat: Schema.string()
+      .role('textarea', { rows: [3, 5] })
+      .default('${IMAGE}\n文件名称：${NAME}\n文件大小：${SIZE}\n修改日期：${TIME}\n匹配方式：${MATCH_TYPE}\n相似度：${SCORE}')
+      .description(`📝 输出格式模板<br>
+▶ 仅图片：\`\${IMAGE}\`<br>
+▶ 图+文件名：\`\${IMAGE}\\n📁 \${NAME}\`<br>
+▶ 完整信息：\`\${IMAGE}\\n📁 \${NAME}\\n📐 \${SIZE}\\n🕐 \${TIME}\`<br>
+▶ 可用变量：\`IMAGE\`、\`NAME\`、\`SIZE\`、\`TIME\`、\`PATH\`、\`MATCH_TYPE\`、\`SCORE\`、\`TAB\`<br>
+其中 \\n 表示换行，\${TAB} 表示制表符`),
+  }).description('🖼️ 图片发送设置'),
+
+  // ============ 调试配置 ============
+  Schema.object({
+    debug: Schema.boolean()
+      .default(false)
+      .description('🐛 调试模式（输出详细日志）'),
+  }).description('🛠️ 调试设置'),
+])
+
+export const usage = `
+## 🎲 Randpic - 智能随机图片
+
+### 使用方式
+- \`randpic\` - 随机返回一张图片（可在配置中自定义指令名）
+- \`randpic 关键词\` - 搜索匹配的图片
+- \`randpic.index\` - 重新索引图片库
+- \`randpic.stats\` - 查看图片库统计
+- \`randpic.refresh\` - 刷新图片缓存
+
+### 多图片库支持
+可以在「图片库列表」中配置多个指令，每个指令对应不同的图片文件夹。
+
+### 搜索逻辑
+1. **子串匹配**：优先在文件名中搜索包含关键词的图片
+2. **向量搜索**：如果子串匹配失败且启用了 Qdrant + 本地 Embedding，使用语义搜索
+
+---
+
+### 🧪 技术架构说明
+
+本插件使用两个核心依赖实现向量搜索：
+
+| 依赖 | 作用 | 说明 |
+|------|------|------|
+| \`@xenova/transformers\` | **生成向量** | Transformers.js，在 Node.js 本地运行 AI 模型，将文件名文本转换为 384 维向量 |
+| \`@qdrant/js-client-rest\` | **存储 & 搜索向量** | Qdrant 向量数据库的 REST 客户端，用于高效存储和相似度搜索 |
+
+**工作流程：**
+1. \`randpic.index\` 扫描图片 → Transformers.js 生成向量 → 存入 Qdrant
+2. \`randpic 关键词\` 搜索时 → Transformers.js 将关键词转向量 → Qdrant 查找最相似的图片
+
+---
+
+### 📊 资源占用估算（约 1000 张图片）
+
+**Transformers.js (本地 Embedding 模型)**
+| 资源 | 首次索引 | 运行时搜索 | 说明 |
+|------|----------|------------|------|
+| **内存 (RAM)** | ~500MB - 800MB | ~400MB - 600MB | 模型常驻内存 |
+| **CPU** | 高 (100%) | 低 (~5-10%) | 索引时密集计算，搜索时仅单次推理 |
+| **索引耗时** | ~8-12 秒 | - | i5-10210U 约 8 秒生成 1000 个向量 |
+| **模型缓存** | ~100MB | - | 首次下载后缓存到 ~/.cache |
+
+**Qdrant (向量数据库 Docker 容器)**
+| 资源 | 索引写入 | 运行时搜索 | 说明 |
+|------|----------|------------|------|
+| **内存 (RAM)** | ~100MB - 200MB | ~50MB - 100MB | 容器内存占用 |
+| **CPU** | 低 (~10%) | 极低 (~1%) | 向量写入/搜索都很轻量 |
+| **磁盘存储** | ~2-5 MB | - | 1000 个 384 维向量 + payload |
+| **网络** | 内网通信 | 内网通信 | REST API，延迟 < 10ms |
+
+**💡 建议：**
+- 内存 < 4GB 的设备建议关闭向量搜索，仅使用子串匹配
+- 索引完成后可以关闭 Koishi 重启，模型会从缓存加载，更快
+
+---
+
+### 🐳 Qdrant 部署（推荐使用 Docker）
+
+Qdrant 是一个高性能向量数据库，用于存储和搜索图片的 Embedding 向量。
+
+**快速部署：**
+\`\`\`bash
+docker run -d --name qdrant -p 56333:6333 -v /path/to/qdrant_data:/qdrant/storage qdrant/qdrant
+\`\`\`
+
+**说明：**
+- \`-p 56333:6333\`：将宿主机的 \`56333\` 端口映射到容器的 \`6333\` 端口
+- \`-v /path/to/qdrant_data:/qdrant/storage\`：持久化存储数据
+  - Linux 示例：\`/home/user/qdrant_data\`
+  - Windows 示例：\`D:\\qdrant_data\`（注意路径格式）
+
+**仓库地址：** <a href="https://github.com/qdrant/qdrant" target="_blank">https://github.com/qdrant/qdrant</a>
+`
