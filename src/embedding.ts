@@ -111,10 +111,9 @@ export class EmbeddingService {
       const transformers = await import('@xenova/transformers')
       pipeline = transformers.pipeline
 
-      // 选择模型来源：本地目录（默认 ../assets）或在线模型
-      // 相对路径基于 __dirname (src目录) 解析为绝对路径
-      const configuredDir = (this.config.localModelDir || '../assets').trim()
-      const localModelDir = path.resolve(__dirname, configuredDir)
+      // 选择模型来源：本地目录或在线模型
+      // config.localModelDir 已经是绝对路径（在 config.ts 中通过 path.resolve 设置默认值）
+      const localModelDir = (this.config.localModelDir || path.resolve(__dirname, '../assets')).trim()
 
       // 设置缓存目录和其他选项
       if (transformers.env) {

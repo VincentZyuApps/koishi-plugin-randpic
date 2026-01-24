@@ -1,4 +1,5 @@
 import { Schema } from 'koishi'
+import path from 'path'
 
 /** 图片库配置项 */
 export interface ImageLibrary {
@@ -99,8 +100,8 @@ export const Config: Schema<Config> = Schema.intersect([
       .description('🤖 Embedding 模型选择'),
 
     localModelDir: Schema.string()
-      .default('../assets')
-      .description('📁 本地模型目录（默认为插件 assets 目录，相对路径基于 src 目录解析）。目录需包含 tokenizer.json、config.json 以及 onnx/model_quantized.onnx 或 onnx/model.onnx。'),
+      .default(path.resolve(__dirname, '../assets'))
+      .description('📁 本地模型目录（默认为插件 assets 目录）。目录需包含 tokenizer.json、config.json 以及 onnx/model_quantized.onnx 或 onnx/model.onnx。'),
 
     topK: Schema.number()
       .default(5)
