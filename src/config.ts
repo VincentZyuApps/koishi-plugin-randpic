@@ -21,6 +21,8 @@ export interface Config {
   // Embedding 配置
   enableLocalEmbedding: boolean
   embeddingModel: string
+  // 可选：本地模型目录（设置后优先使用本地）
+  localModelDir?: string
   topK: number
   similarityThreshold: number
 
@@ -95,6 +97,10 @@ export const Config: Schema<Config> = Schema.intersect([
     ])
       .default('Xenova/paraphrase-multilingual-MiniLM-L12-v2')
       .description('🤖 Embedding 模型选择'),
+
+    localModelDir: Schema.string()
+      .default('../assets')
+      .description('📁 本地模型目录（默认为插件 assets 目录，相对路径基于 src 目录解析）。目录需包含 tokenizer.json、config.json 以及 onnx/model_quantized.onnx 或 onnx/model.onnx。'),
 
     topK: Schema.number()
       .default(5)
