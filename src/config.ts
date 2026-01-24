@@ -82,7 +82,7 @@ export const Config: Schema<Config> = Schema.intersect([
 
     collectionName: Schema.string()
       .default('randpic_images')
-      .description('🗄️ Qdrant 集合名称'),
+      .description('🗄️ Qdrant 集合名称<br><span style="color:red">⚠️ 注意：不同的 Koishi randpic 插件实例若使用同一个 Qdrant 容器，必须配置不同的集合名称，否则会导致数据冲突！</span>'),
   }).description('🐳 Qdrant 向量数据库配置'),
 
   // ============ 本地 Embedding 配置 ============
@@ -168,6 +168,8 @@ export const Config: Schema<Config> = Schema.intersect([
 export const usage = `
 ## 🎲 Randpic - 智能随机图片
 
+![Vector Search Preview](https://gitee.com/vincent-zyu/koishi-plugin-randpic/releases/download/randpic-vector-search-preview.png/randpic-vector-search-preview.png)
+
 ### 使用方式
 - \`randpic\` - 随机返回一张图片（可在配置中自定义指令名）
 - \`randpic 关键词\` - 搜索匹配的图片
@@ -223,9 +225,48 @@ export const usage = `
 
 ---
 
+### ⬇️ 手动下载模型文件（可选）
+
+如果 Transformers.js 自动下载失败（网络问题、代理问题等），可以使用插件目录下的 Python 脚本手动下载模型文件。
+
+**环境变量：**
+| 变量 | 说明 | 示例 |
+|------|------|------|
+| \`HF_PROXY\` | 代理地址（优先使用） | \`socks5h://127.0.0.1:7890\` |
+
+**运行方法：**
+\`\`\`bash
+# 进入插件 assets 目录
+# cd /path/to/koishi-plugin-randpic/assets
+本插件的实际路径：
+cd ${path.resolve(__dirname, '../assets')}
+
+# 安装依赖
+pip install requests[socks]
+
+# 直接运行（自动尝试 127.0.0.1:7890 代理）
+python download.py
+
+# 或者指定代理
+HF_PROXY=socks5h://192.168.31.84:7890 python download.py
+
+# 或者使用 http 代理
+HF_PROXY=http://127.0.0.1:7890 python download.py
+\`\`\`
+
+**说明：**
+- 脚本会自动下载所需的模型文件到当前目录
+- 如果 \`huggingface.co\` 无法访问，会自动尝试 \`hf-mirror.com\` 镜像
+- 下载完成后，确保 \`localModelDir\` 配置指向正确的 assets 目录
+
+---
+
 ### 🐳 Qdrant 部署（推荐使用 Docker）
 
 Qdrant 是一个高性能向量数据库，用于存储和搜索图片的 Embedding 向量。
+
+**仓库地址：** <a href="https://github.com/qdrant/qdrant" target="_blank">https://github.com/qdrant/qdrant</a>
+
 
 **快速部署：**
 \`\`\`bash
@@ -238,5 +279,6 @@ docker run -d --name qdrant -p 56333:6333 -v /path/to/qdrant_data:/qdrant/storag
   - Linux 示例：\`/home/user/qdrant_data\`
   - Windows 示例：\`D:\\qdrant_data\`（注意路径格式）
 
-**仓库地址：** <a href="https://github.com/qdrant/qdrant" target="_blank">https://github.com/qdrant/qdrant</a>
+<span style="color:red">**⚠️ 重要提醒：** 如果多个 Koishi randpic 插件实例共用同一个 Qdrant 容器，必须为每个实例配置不同的 \`collectionName\`，否则会导致数据冲突和索引混乱！</span>
+
 `

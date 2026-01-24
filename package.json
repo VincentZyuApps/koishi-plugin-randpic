@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-randpic",
   "description": "随机选图发送，先直接搜索字符串，不行就再本地embedding模型",
-  "version": "0.0.2-beta.2+20260124",
+  "version": "0.0.2-beta.3+20260124",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
