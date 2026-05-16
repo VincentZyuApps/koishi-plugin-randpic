@@ -1,7 +1,6 @@
 import { Schema } from 'koishi'
 import path from 'path'
 
-/** 图片库配置项 */
 export interface ImageLibrary {
   command: string
   imageDir: string
@@ -9,39 +8,38 @@ export interface ImageLibrary {
 }
 
 export interface Config {
-  // 图片库列表
   imageLibraries: ImageLibrary[]
   searchSubfolders: boolean
 
-  // Qdrant 配置
   enableQdrant: boolean
   qdrantHost: string
   qdrantPort: number
   collectionName: string
 
-  // Embedding 配置
   enableLocalEmbedding: boolean
   embeddingModel: string
-  // 可选：本地模型目录（设置后优先使用本地）
   localModelDir?: string
   topK: number
   similarityThreshold: number
 
-  // 代理配置
+  enableOllamaVision: boolean
+  ollamaHost: string
+  ollamaPort: number
+  ollamaVisionModel: string
+  ollamaTimeout: number
+  ollamaPrompt: string
+
   enableProxy: boolean
   proxyProtocol: 'http' | 'https' | 'socks4' | 'socks5' | 'socks5h'
   proxyHost: string
   proxyPort: number
 
-  // 图片发送配置
   toBase64: boolean
   outputFormat: string
 
-  // 调试
   debug: boolean
 }
 
-/** 默认图片库配置 */
 const defaultImageLibraries: ImageLibrary[] = [
   {
     command: 'randpic',
@@ -51,7 +49,6 @@ const defaultImageLibraries: ImageLibrary[] = [
 ]
 
 export const Config: Schema<Config> = Schema.intersect([
-  // ============ 图片库配置 ============
   Schema.object({
     imageLibraries: Schema.array(Schema.object({
       command: Schema.string().description('⌨️ 指令名称'),
@@ -65,7 +62,6 @@ export const Config: Schema<Config> = Schema.intersect([
       .description('📂 是否递归搜索子文件夹'),
   }).description('📦 图片库配置'),
 
-  // ============ Qdrant 向量数据库配置 ============
   Schema.object({
     enableQdrant: Schema.boolean()
       .default(false)
@@ -85,7 +81,6 @@ export const Config: Schema<Config> = Schema.intersect([
       .description('🗄️ Qdrant 集合名称<br><span style="color:red">⚠️ 注意：不同的 Koishi randpic 插件实例若使用同一个 Qdrant 容器，必须配置不同的集合名称，否则会导致数据冲突！</span>'),
   }).description('🐳 Qdrant 向量数据库配置'),
 
-  // ============ 本地 Embedding 配置 ============
   Schema.object({
     enableLocalEmbedding: Schema.boolean()
       .default(false)
@@ -114,7 +109,36 @@ export const Config: Schema<Config> = Schema.intersect([
       .description('📊 相似度阈值 (0-1)，低于此值不返回'),
   }).description('🧪 本地 Embedding 配置 (Transformers.js)'),
 
-  // ============ 代理配置 ============
+  Schema.object({
+    enableOllamaVision: Schema.boolean()
+      .default(false)
+      .description('👁️ 启用 Ollama 视觉模型（索引时分析图片内容生成 tag，大幅提升搜索效果）'),
+
+    ollamaHost: Schema.string()
+      .default('127.0.0.1')
+      .description('🌐 Ollama 服务器地址'),
+
+    ollamaPort: Schema.number()
+      .default(11434)
+      .min(1).max(65535)
+      .description('🔢 Ollama 服务器端口（默认 11434）'),
+
+    ollamaVisionModel: Schema.string()
+      .default('moondream')
+      .description('🤖 Ollama 视觉模型名称（支持 llava、bakllava、moondream 等多模态模型）<br>💡 运行 <code>ollama pull moondream</code> 下载模型'),
+
+    ollamaTimeout: Schema.number()
+      .default(30000)
+      .min(5000).max(120000)
+      .step(1000)
+      .description('⏱️ Ollama 请求超时时间（毫秒）'),
+
+    ollamaPrompt: Schema.string()
+      .role('textarea', { rows: [3, 5] })
+      .default('请详细描述这张图片的内容，包括主体、场景、颜色、动作等关键信息。用简洁的中文关键词或短语回答，用空格分隔。')
+      .description('💬 Ollama 视觉分析提示词模板'),
+  }).description('🦙 Ollama 视觉模型配置'),
+
   Schema.object({
     enableProxy: Schema.boolean()
       .default(false)
@@ -140,7 +164,6 @@ export const Config: Schema<Config> = Schema.intersect([
       .description('🔢 代理端口'),
   }).description('🌐 网络代理配置（下载模型用）'),
 
-  // ============ 图片发送配置 ============
   Schema.object({
     toBase64: Schema.boolean()
       .default(true)
@@ -157,7 +180,6 @@ export const Config: Schema<Config> = Schema.intersect([
 其中 \\n 表示换行，\${TAB} 表示制表符`),
   }).description('🖼️ 图片发送设置'),
 
-  // ============ 调试配置 ============
   Schema.object({
     debug: Schema.boolean()
       .default(false)
@@ -183,6 +205,24 @@ export const usage = `
 ### 搜索逻辑
 1. **子串匹配**：优先在文件名中搜索包含关键词的图片
 2. **向量搜索**：如果子串匹配失败且启用了 Qdrant + 本地 Embedding，使用语义搜索
+
+### 🆕 Ollama 视觉增强（可选）
+启用 Ollama 视觉模型后，索引时会使用多模态 AI（如 moondream、LLaVA等）分析图片内容，生成描述性 tag。
+这样向量搜索不再依赖文件名，而是基于图片的实际内容，大幅提升搜索效果！
+
+**前置条件：**
+- 安装并运行 Ollama：<a href="https://ollama.com" target="_blank">https://ollama.com</a>
+- 下载视觉模型：\`ollama pull moondream\`（如 moondream、LLaVA等）
+
+**使用方式：**
+1. 在插件配置中启用「👁️ 启用 Ollama 视觉模型」
+2. 配置 Ollama 地址和模型名称（默认 \`127.0.0.1:11434\`，\`moondream\`）
+3. 运行 \`randpic.index\` 重新索引图片库
+
+**性能说明：**
+- 索引速度：GPU 约 1-3 秒/张，CPU 约 5-15 秒/张
+- 搜索速度：不变（毫秒级，Qdrant 直接查向量）
+- 索引完成后可关闭 Ollama，搜索不需要它
 
 ---
 
