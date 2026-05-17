@@ -35,40 +35,50 @@ export class OllamaVisionService {
   }
 
   /**
-   * 分析单张图片，返回描述性 tag
+   * 分析单张图片，返回描述性 tag（含重试机制）
    * @param imageBase64 图片 base64 数据（不含 data:image/xxx;base64, 前缀）
-   * @returns 描述文本（如 "橘猫 可爱 草地 晒太阳 户外"）
+   * @returns 描述文本（如 "blue sky mountain lake cat"）
    */
   async analyzeImage(imageBase64: string): Promise<string> {
-    try {
-      this.log(`正在分析图片，模型: ${this.config.ollamaVisionModel}`)
+    const englishPrompt = `${this.config.ollamaPrompt}\n\nIMPORTANT: Respond in English ONLY. Ignore any non-English text in the image. Do not use Chinese or any other language.`
+    const maxRetries = this.config.ollamaMaxRetries
 
-      const response = await this.ctx.http.post(
-        `${this.baseUrl}/api/generate`,
-        {
-          model: this.config.ollamaVisionModel,
-          prompt: this.config.ollamaPrompt,
-          images: [imageBase64],
-          stream: false,
-        },
-        {
-          timeout: this.config.ollamaTimeout,
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        this.log(`正在分析图片 (尝试 ${attempt}/${maxRetries})，模型: ${this.config.ollamaVisionModel}`)
+
+        const response = await this.ctx.http.post(
+          `${this.baseUrl}/api/generate`,
+          {
+            model: this.config.ollamaVisionModel,
+            prompt: englishPrompt,
+            images: [imageBase64],
+            stream: false,
+          },
+          {
+            timeout: this.config.ollamaTimeout,
+          }
+        )
+
+        const result = response.data || response
+        const description = result.response?.trim() || ''
+
+        if (!description) {
+          throw new Error('Ollama 返回空响应')
         }
-      )
 
-      const result = response.data || response
-      const description = result.response?.trim() || ''
-
-      if (!description) {
-        throw new Error('Ollama 返回空响应')
+        this.log(`分析结果: ${description.substring(0, 100)}...`)
+        return description
+      } catch (error) {
+        if (attempt === maxRetries) {
+          this.ctx.logger('randpic').error(`图片分析失败 (${maxRetries} 次重试后): ${error.message}`)
+          throw error
+        }
+        this.ctx.logger('randpic').warn(`第 ${attempt} 次分析失败，正在重试: ${error.message}`)
       }
-
-      this.log(`分析结果: ${description.substring(0, 100)}...`)
-      return description
-    } catch (error) {
-      this.ctx.logger('randpic').error(`图片分析失败: ${error.message}`)
-      throw error
     }
+
+    return ''
   }
 
   /**

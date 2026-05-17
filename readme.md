@@ -274,6 +274,7 @@ HF_PROXY=socks5h://127.0.0.1:7890 python download.py
 | `ollamaVisionModel` | String | `llava:7b` | 视觉模型名称（llava、bakllava、moondream 等） |
 | `ollamaTimeout` | Number | `30000` | 请求超时时间（毫秒） |
 | `ollamaPrompt` | String | - | 视觉分析提示词模板 |
+| `ollamaMaxRetries` | Number | `3` | 分析失败重试次数（0-10） |
 
 ### 代理配置
 

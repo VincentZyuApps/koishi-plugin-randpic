@@ -28,6 +28,7 @@ export interface Config {
   ollamaVisionModel: string
   ollamaTimeout: number
   ollamaPrompt: string
+  ollamaMaxRetries: number
 
   enableProxy: boolean
   proxyProtocol: 'http' | 'https' | 'socks4' | 'socks5' | 'socks5h'
@@ -137,6 +138,11 @@ export const Config: Schema<Config> = Schema.intersect([
       .role('textarea', { rows: [3, 5] })
       .default('Describe this image in detail. List key objects, colors, scene, mood, and actions as short English keywords separated by spaces.')
       .description('💬 Ollama 视觉分析提示词模板'),
+
+    ollamaMaxRetries: Schema.number()
+      .default(3)
+      .min(0).max(10)
+      .description('🔄 Ollama 分析失败重试次数（默认 3）'),
   }).description('🦙 Ollama 视觉模型配置'),
 
   Schema.object({
