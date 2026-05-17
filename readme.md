@@ -1,8 +1,11 @@
 # koishi-plugin-randpic
 
 [![npm](https://img.shields.io/npm/v/koishi-plugin-randpic?style=flat-square)](https://www.npmjs.com/package/koishi-plugin-randpic)
+[![npm-download](https://img.shields.io/npm/dm/koishi-plugin-randpic?style=flat-square)](https://www.npmjs.com/package/koishi-plugin-randpic)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/VincentZyuApps/koishi-plugin-randpic)
+[![Gitee](https://img.shields.io/badge/Gitee-C71D23?style=for-the-badge&logo=gitee&logoColor=white)](https://gitee.com/vincent-zyu/koishi-plugin-randpic)
 
-🎲 智能随机图片插件 - 从本地文件夹随机选图发送，支持关键词搜索和 AI 语义搜索
+🎲 Koishi智能随机图片插件 - 从本地文件夹随机选图发送，支持关键词搜索、transformers.js 本地向量语义搜索，以及 Ollama 视觉模型图片内容分析与索引。
 
 ![Vector Search Preview](./doc/randpic-vector-search-preview.png)
 
@@ -53,7 +56,7 @@ randpic.refresh      # 刷新图片缓存
 
 ### 👁️ Ollama 视觉增强（推荐）
 
-启用 Ollama 视觉模型后，索引时会使用多模态 AI（如 moondream、LLaVA）分析图片内容，生成描述性 tag。
+启用 Ollama 视觉模型后，索引时会使用多模态 AI（如 llava、bakllava、moondream）分析图片内容，生成描述性 tag。
 这样向量搜索不再依赖文件名，而是基于图片的实际内容，大幅提升搜索效果！
 
 **效果对比：**
@@ -169,6 +172,9 @@ Ollama 是一个本地 LLM 运行工具，支持多模态视觉模型（如 moon
    # 推荐：LLaVA 7B（效果好，速度适中）
    ollama pull llava:7b
    
+   # 备选：bakllava（基于 Mistral，效果更好）
+   ollama pull bakllava
+   
    # 轻量级：moondream（速度快，适合 CPU）
    ollama pull moondream
    ```
@@ -177,7 +183,7 @@ Ollama 是一个本地 LLM 运行工具，支持多模态视觉模型（如 moon
 
 1. 确保 Ollama 服务运行中（默认 `http://127.0.0.1:11434`）
 2. 在插件配置中启用「👁️ 启用 Ollama 视觉模型」
-3. 配置 Ollama 地址和模型名称（默认 `127.0.0.1:11434`，`moondream`）
+3. 配置 Ollama 地址和模型名称（默认 `127.0.0.1:11434`，`llava:7b`）
 4. 运行 `randpic.index` 重新索引图片库
 
 ### 性能说明
@@ -193,8 +199,7 @@ Ollama 是一个本地 LLM 运行工具，支持多模态视觉模型（如 moon
 
 你可以在配置中自定义 Ollama 的提示词模板，例如：
 ```
-请详细描述这张图片的内容，包括主体、场景、颜色、动作等关键信息。
-用简洁的中文关键词或短语回答，用空格分隔。
+Describe this image in detail. List key objects, colors, scene, mood, and actions as short English keywords separated by spaces.
 ```
 
 📦 **Ollama 仓库**：https://github.com/ollama/ollama  
@@ -266,7 +271,7 @@ HF_PROXY=socks5h://127.0.0.1:7890 python download.py
 | `enableOllamaVision` | Boolean | `false` | 启用 Ollama 视觉分析（索引时生成图片描述 tag） |
 | `ollamaHost` | String | `127.0.0.1` | Ollama 服务器地址 |
 | `ollamaPort` | Number | `11434` | Ollama 服务器端口 |
-| `ollamaVisionModel` | String | `moondream` | 视觉模型名称（llava、bakllava、moondream 等） |
+| `ollamaVisionModel` | String | `llava:7b` | 视觉模型名称（llava、bakllava、moondream 等） |
 | `ollamaTimeout` | Number | `30000` | 请求超时时间（毫秒） |
 | `ollamaPrompt` | String | - | 视觉分析提示词模板 |
 

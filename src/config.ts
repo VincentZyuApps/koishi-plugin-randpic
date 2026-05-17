@@ -124,8 +124,8 @@ export const Config: Schema<Config> = Schema.intersect([
       .description('🔢 Ollama 服务器端口（默认 11434）'),
 
     ollamaVisionModel: Schema.string()
-      .default('moondream')
-      .description('🤖 Ollama 视觉模型名称（支持 llava、bakllava、moondream 等多模态模型）<br>💡 运行 <code>ollama pull moondream</code> 下载模型'),
+      .default('llava:7b')
+      .description('🤖 Ollama 视觉模型名称（支持 llava、bakllava、moondream 等多模态模型）<br>💡 运行 <code>ollama pull llava:7b</code> 下载模型'),
 
     ollamaTimeout: Schema.number()
       .default(30000)
@@ -135,7 +135,7 @@ export const Config: Schema<Config> = Schema.intersect([
 
     ollamaPrompt: Schema.string()
       .role('textarea', { rows: [3, 5] })
-      .default('请详细描述这张图片的内容，包括主体、场景、颜色、动作等关键信息。用简洁的中文关键词或短语回答，用空格分隔。')
+      .default('Describe this image in detail. List key objects, colors, scene, mood, and actions as short English keywords separated by spaces.')
       .description('💬 Ollama 视觉分析提示词模板'),
   }).description('🦙 Ollama 视觉模型配置'),
 
@@ -212,11 +212,11 @@ export const usage = `
 
 **前置条件：**
 - 安装并运行 Ollama：<a href="https://ollama.com" target="_blank">https://ollama.com</a>
-- 下载视觉模型：\`ollama pull moondream\`（如 moondream、LLaVA等）
+- 下载视觉模型：\`ollama pull llava:7b\`
 
 **使用方式：**
 1. 在插件配置中启用「👁️ 启用 Ollama 视觉模型」
-2. 配置 Ollama 地址和模型名称（默认 \`127.0.0.1:11434\`，\`moondream\`）
+2. 配置 Ollama 地址和模型名称（默认 \`127.0.0.1:11434\`，\`llava:7b\`）
 3. 运行 \`randpic.index\` 重新索引图片库
 
 **性能说明：**
