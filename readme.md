@@ -1,9 +1,19 @@
 # koishi-plugin-randpic
 
-[![npm](https://img.shields.io/npm/v/koishi-plugin-randpic?style=flat-square)](https://www.npmjs.com/package/koishi-plugin-randpic)
-[![npm-download](https://img.shields.io/npm/dm/koishi-plugin-randpic?style=flat-square)](https://www.npmjs.com/package/koishi-plugin-randpic)
+[![npm](https://img.shields.io/npm/v/koishi-plugin-randpic?style=flat-square&logo=npm)](https://www.npmjs.com/package/koishi-plugin-randpic)
+[![npm-download](https://img.shields.io/npm/dm/koishi-plugin-randpic?style=flat-square&logo=npm)](https://www.npmjs.com/package/koishi-plugin-randpic)
+
 [![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/VincentZyuApps/koishi-plugin-randpic)
 [![Gitee](https://img.shields.io/badge/Gitee-C71D23?style=for-the-badge&logo=gitee&logoColor=white)](https://gitee.com/vincent-zyu/koishi-plugin-randpic)
+
+[![Koishi Plugin](https://img.shields.io/badge/Koishi-Plugin-5546A3?style=for-the-badge&logo=data%3Aimage%2Fpng%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAABU0lEQVR42p2UQSsFYRSGnxnqLuytKWKpKFkQNsS%2FsOHPWPADLCmxU5S7UzYWNrJR7lYiRF2FeWzOMKZ7mXHqNNP5vvP2nu%2B850CY2lP4X1K31ZbaDm%2BpO%2Bpyp5wfAXVEPfRvO1JHf4AVQGbUh7j4EZ4VkrNCXPVRnf3CUBN1SH2KC28VGOV3ntRhNclZHdcAKYM11QR1oVBOXctzFlNgBTC8qmXxPQEegbVeYApIgJT6tg%2F0AdMp0B%2FBpCabK2AAmAAa%2F2GRBft1oBFPkqTAba7LCiAfQC9wClwAY1HJHepuiO29Yrsf1Dn1uiDU3RTYCtTkl1Leg8k9MB4NGgReI28rV3azgyCz0og01Xl1Uz1QX8uCTELm3UbkTF1VJ9Wr0tn3iBSGdjYG0XivE3VN3VD31PM4a3cc2tIGGI0VkTO7rLxGuiy25ejmjfqsvkSXui62TxaK03td4FXTAAAAAElFTkSuQmCC&logoColor=white)](https://koishi.chat/zh-CN/market/)
+[![QQ群](https://img.shields.io/badge/QQ群-1085190201-12B7F5?style=flat-square&logo=qq&logoColor=white)](https://qm.qq.com/q/ZN7fxZ3qCq)
+
+<h2>💬 交流反馈</h2>
+<p>🐛 Bug 反馈 / 💡 建议 / 👨‍💻 插件开发交流，欢迎加群：</p>
+<p><del>💬 插件使用问题 / 🐛 Bug反馈 / 👨‍💻 插件开发交流，欢迎加入QQ群：<b>259248174</b>   🎉（这个群G了）</del></p>
+<p>💬 插件使用问题 / 🐛 Bug反馈 / 👨‍💻 插件开发交流，欢迎加入QQ群：<b>1085190201</b> 🎉</p>
+<p>💡 在群里直接艾特我，回复的更快哦~ ✨</p>
 
 🎲 Koishi智能随机图片插件 - 从本地文件夹随机选图发送，支持关键词搜索、transformers.js 本地向量语义搜索，以及 Ollama 视觉模型图片内容分析与索引。
 
