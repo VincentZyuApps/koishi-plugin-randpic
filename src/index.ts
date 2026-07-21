@@ -1,9 +1,10 @@
 import { Context, h } from 'koishi'
-import { Config, usage, ImageLibrary } from './config'
+import { Config } from './config'
 import { SearchService } from './search'
 
 export const name = 'randpic'
-export { Config, usage }
+export { Config }
+export { usage } from './usage'
 
 export function apply(ctx: Context, config: Config) {
   const logger = ctx.logger('randpic')
