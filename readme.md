@@ -244,6 +244,8 @@ HF_PROXY=socks5h://127.0.0.1:7890 python download.py
 |--------|------|--------|------|
 | `imageLibraries` | Array | - | 图片库列表，包含指令名、路径、是否启用 |
 | `searchSubfolders` | Boolean | `true` | 是否递归搜索子文件夹 |
+| `autoRefreshImageCache` | Boolean | `true` | 自动刷新图片缓存，使文件增删和重命名无需手动 refresh 即可生效（实验性） |
+| `imageCacheTtlSec` | Number | `5` | 图片缓存有效时间（秒），`0` 表示每条图片命令都扫描目录（实验性） |
 
 ### Qdrant 配置
 

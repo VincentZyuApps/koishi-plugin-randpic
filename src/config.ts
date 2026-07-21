@@ -10,6 +10,8 @@ export interface ImageLibrary {
 export interface Config {
   imageLibraries: ImageLibrary[]
   searchSubfolders: boolean
+  autoRefreshImageCache: boolean
+  imageCacheTtlSec: number
 
   enableQdrant: boolean
   qdrantHost: string
@@ -61,6 +63,17 @@ export const Config: Schema<Config> = Schema.intersect([
     searchSubfolders: Schema.boolean()
       .default(true)
       .description('📂 是否递归搜索子文件夹'),
+
+    autoRefreshImageCache: Schema.boolean()
+      .default(true)
+      .description('🔄 自动刷新图片缓存，使新增、删除和重命名的图片无需手动 refresh 即可生效')
+      .experimental(),
+
+    imageCacheTtlSec: Schema.number()
+      .default(5)
+      .min(0).max(3600).step(1)
+      .description('⏱️ 图片缓存有效时间（秒）；设为 0 时每条图片命令都会重新扫描目录')
+      .experimental(),
   }).description('📦 图片库配置'),
 
   Schema.object({
@@ -211,6 +224,8 @@ export const usage = `
 ### 搜索逻辑
 1. **子串匹配**：优先在文件名中搜索包含关键词的图片
 2. **向量搜索**：如果子串匹配失败且启用了 Qdrant + 本地 Embedding，使用语义搜索
+
+启用自动刷新图片缓存后，新增、删除和重命名的图片会在缓存过期后的下一条命令中自动生效；子串匹配未命中时会立即刷新一次目录。
 
 ### 🆕 Ollama 视觉增强（可选）
 启用 Ollama 视觉模型后，索引时会使用多模态 AI（如 moondream、LLaVA等）分析图片内容，生成描述性 tag。

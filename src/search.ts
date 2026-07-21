@@ -38,6 +38,9 @@ export class SearchService {
   private embedding: EmbeddingService
   private ollama: OllamaVisionService
   private imageCache: ImageFile[] = []
+  private imageCacheInitialized = false
+  private imageCacheUpdatedAt = 0
+  private imageCacheRevision = 0
 
   constructor(ctx: Context, config: Config, imageDir: string) {
     this.ctx = ctx
@@ -54,12 +57,28 @@ export class SearchService {
     }
   }
 
+  private updateImageCache(images: ImageFile[]): ImageFile[] {
+    this.imageCache = images
+    this.imageCacheInitialized = true
+    this.imageCacheUpdatedAt = Date.now()
+    this.imageCacheRevision += 1
+    return images
+  }
+
+  private shouldRefreshImageCache(): boolean {
+    if (!this.imageCacheInitialized) return true
+    if (!this.config.autoRefreshImageCache) return false
+
+    const ttlMs = Math.max(0, this.config.imageCacheTtlSec ?? 5) * 1000
+    return ttlMs === 0 || Date.now() - this.imageCacheUpdatedAt >= ttlMs
+  }
+
   scanImages(): ImageFile[] {
     const baseDir = this.imageDir
 
     if (!fs.existsSync(baseDir)) {
       this.ctx.logger('randpic').warn(`图片目录不存在: ${baseDir}`)
-      return []
+      return this.updateImageCache([])
     }
 
     const images: ImageFile[] = []
@@ -87,13 +106,13 @@ export class SearchService {
     }
 
     scan(baseDir)
-    this.imageCache = images
+    this.updateImageCache(images)
     this.log(`扫描到 ${images.length} 张图片 (目录: ${baseDir})`)
     return images
   }
 
-  getImageCache(): ImageFile[] {
-    if (this.imageCache.length === 0) {
+  getImageCache(forceRefresh = false): ImageFile[] {
+    if (forceRefresh || this.shouldRefreshImageCache()) {
       this.scanImages()
     }
     return this.imageCache
@@ -103,9 +122,7 @@ export class SearchService {
     return this.imageDir
   }
 
-  substringSearch(keywords: string[]): ImageFile[] {
-    const images = this.getImageCache()
-
+  substringSearch(keywords: string[], images = this.getImageCache()): ImageFile[] {
     const matched = images.filter(img => {
       const searchTarget = img.virtualName.toLowerCase()
       return keywords.every(kw => searchTarget.includes(kw.toLowerCase()))
@@ -136,10 +153,29 @@ export class SearchService {
 
   async search(keywords: string[]): Promise<MatchResult | null> {
     const query = keywords.join(' ')
+    const initialRevision = this.imageCacheRevision
+    let images = this.getImageCache()
+    let substringResults = this.substringSearch(keywords, images)
 
-    const substringResults = this.substringSearch(keywords)
+    if (
+      substringResults.length === 0
+      && this.config.autoRefreshImageCache
+      && this.imageCacheRevision === initialRevision
+    ) {
+      images = this.scanImages()
+      substringResults = this.substringSearch(keywords, images)
+    }
+
     if (substringResults.length > 0) {
-      const selected = substringResults[Math.floor(Math.random() * substringResults.length)]
+      let selected = substringResults[Math.floor(Math.random() * substringResults.length)]
+
+      if (this.config.autoRefreshImageCache && !fs.existsSync(selected.filepath)) {
+        images = this.scanImages()
+        substringResults = this.substringSearch(keywords, images)
+        selected = substringResults[Math.floor(Math.random() * substringResults.length)]
+      }
+
+      if (!selected) return null
       return {
         file: selected,
         matchType: 'substring',
@@ -149,14 +185,14 @@ export class SearchService {
     if (this.config.enableQdrant && this.config.enableLocalEmbedding && query.trim()) {
       const vectorResults = await this.vectorSearch(query)
       if (vectorResults.length > 0) {
-        const best = vectorResults[0]
-        const images = this.getImageCache()
-        const file = images.find(img => img.filepath === best.filepath)
-        if (file) {
-          return {
-            file,
-            matchType: 'vector',
-            score: best.score,
+        for (const result of vectorResults) {
+          const file = images.find(img => img.filepath === result.filepath)
+          if (file && fs.existsSync(file.filepath)) {
+            return {
+              file,
+              matchType: 'vector',
+              score: result.score,
+            }
           }
         }
       }
@@ -165,10 +201,17 @@ export class SearchService {
     return null
   }
 
-  getRandomImage(): ImageFile | null {
-    const images = this.getImageCache()
+  getRandomImage(refreshCache = true): ImageFile | null {
+    let images = refreshCache ? this.getImageCache() : this.imageCache
     if (images.length === 0) return null
-    return images[Math.floor(Math.random() * images.length)]
+
+    let selected = images[Math.floor(Math.random() * images.length)]
+    if (this.config.autoRefreshImageCache && !fs.existsSync(selected.filepath)) {
+      images = this.scanImages()
+      if (images.length === 0) return null
+      selected = images[Math.floor(Math.random() * images.length)]
+    }
+    return selected
   }
 
   async indexImages(onProgress?: (message: string) => void): Promise<number> {

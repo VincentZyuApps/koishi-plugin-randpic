@@ -39,7 +39,7 @@ export function apply(ctx: Context, config: Config) {
         } else {
           result = await searchService.search(keywords)
           if (!result) {
-            const file = searchService.getRandomImage()
+            const file = searchService.getRandomImage(false)
             if (!file) {
               return `🔍 没有找到匹配「${keywords.join(' ')}」的图片`
             }
