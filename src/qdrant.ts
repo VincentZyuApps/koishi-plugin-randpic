@@ -1,6 +1,6 @@
 import { Context } from 'koishi'
 import { Config } from './config'
-import axios from 'axios'
+import axios, { AxiosInstance } from 'axios'
 
 export interface ImagePoint {
   id: string
@@ -19,11 +19,18 @@ export class QdrantClient {
   private ctx: Context
   private config: Config
   private baseUrl: string
+  private http: AxiosInstance
 
   constructor(ctx: Context, config: Config) {
     this.ctx = ctx
     this.config = config
     this.baseUrl = `http://${config.qdrantHost}:${config.qdrantPort}`
+    // Qdrant may be on localhost. Do not inherit process-wide fetch/proxy settings.
+    this.http = axios.create({
+      baseURL: this.baseUrl,
+      timeout: 30000,
+      proxy: false,
+    })
   }
 
   private log(message: string, ...args: any[]) {
@@ -37,7 +44,7 @@ export class QdrantClient {
    */
   async isAvailable(): Promise<boolean> {
     try {
-      await this.ctx.http.get(`${this.baseUrl}/collections`)
+      await this.http.get('/collections')
       return true
     } catch (error) {
       this.log('Qdrant 服务不可用:', error.message)
@@ -53,12 +60,12 @@ export class QdrantClient {
 
     try {
       // 检查集合是否存在
-      await this.ctx.http.get(`${this.baseUrl}/collections/${collectionName}`)
+      await this.http.get(`/collections/${collectionName}`)
       this.log(`集合 ${collectionName} 已存在`)
     } catch (error) {
       // 集合不存在，创建新集合
       this.log(`创建集合 ${collectionName}，向量维度: ${vectorSize}`)
-      await this.ctx.http.put(`${this.baseUrl}/collections/${collectionName}`, {
+      await this.http.put(`/collections/${collectionName}`, {
         vectors: {
           size: vectorSize,
           distance: 'Cosine',
@@ -72,7 +79,7 @@ export class QdrantClient {
    */
   async deleteCollection(): Promise<void> {
     try {
-      await this.ctx.http.delete(`${this.baseUrl}/collections/${this.config.collectionName}`)
+      await this.http.delete(`/collections/${this.config.collectionName}`)
       this.log(`集合 ${this.config.collectionName} 已删除`)
     } catch (error) {
       // 集合可能不存在，忽略错误
@@ -99,13 +106,11 @@ export class QdrantClient {
         },
       }))
 
-      // 使用 axios 避免 undici/fetch 的问题
-      await axios.put(
-        `${this.baseUrl}/collections/${collectionName}/points`,
+      await this.http.put(
+        `/collections/${collectionName}/points`,
         { points: qdrantPoints },
         {
           headers: { 'Content-Type': 'application/json' },
-          timeout: 30000,  // 30 秒超时
         }
       )
 
@@ -123,8 +128,8 @@ export class QdrantClient {
     const limit = topK ?? this.config.topK
 
     try {
-      const response = await this.ctx.http.post(
-        `${this.baseUrl}/collections/${collectionName}/points/search`,
+      const response = await this.http.post(
+        `/collections/${collectionName}/points/search`,
         {
           vector,
           limit,
@@ -132,7 +137,7 @@ export class QdrantClient {
         }
       )
 
-      const results: SearchResult[] = response.result.map((item: any) => ({
+      const results: SearchResult[] = response.data.result.map((item: any) => ({
         filename: item.payload.filename,
         filepath: item.payload.filepath,
         score: item.score,
@@ -151,10 +156,10 @@ export class QdrantClient {
    */
   async getPointCount(): Promise<number> {
     try {
-      const response = await this.ctx.http.get(
-        `${this.baseUrl}/collections/${this.config.collectionName}`
+      const response = await this.http.get(
+        `/collections/${this.config.collectionName}`
       )
-      return response.result?.points_count ?? 0
+      return response.data.result?.points_count ?? 0
     } catch (error) {
       return 0
     }
